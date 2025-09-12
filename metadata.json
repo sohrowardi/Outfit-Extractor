@@ -1,0 +1,5 @@
+{
+  "name": "Outfit Extractor",
+  "description": "An AI-powered application that automatically transforms clothing images by extracting all clothing items from a person, then presenting each item individually on a clean, professional white backdrop for e-commerce and catalogs.",
+  "requestFramePermissions": []
+}
