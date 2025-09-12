@@ -3,7 +3,7 @@ import ImageUploader from './components/ImageUploader';
 import ProcessingView from './components/ProcessingView';
 import ResultView from './components/ResultView';
 import { AppState, TransformedImage } from './types';
-import { transformClothingImage, retryExtraction, changeItemBackground, retryCompositeExtraction } from './services/geminiService';
+import { transformClothingImage, retryExtraction, changeItemBackground, retryCompositeExtraction, editItemWithPrompt } from './services/geminiService';
 import { createAndDownloadZip } from './utils/fileUtils';
 
 const App: React.FC = () => {
@@ -82,27 +82,48 @@ const App: React.FC = () => {
     }
   }, [originalImage, transformedImages]);
 
-  const handleItemBackgroundChange = useCallback(async (index: number, background: string) => {
-    if (!originalImage || !transformedImages) return;
+  const handleItemEdit = useCallback(async (index: number, prompt: string) => {
+    if (!originalImage || !transformedImages || !prompt) return;
 
-    const itemToChange = transformedImages[index];
+    const itemToEdit = transformedImages[index];
 
     setTransformedImages(current =>
       current!.map((item, i) => (i === index ? { ...item, isLoading: true } : item))
     );
 
     try {
-      const newItem = await changeItemBackground(originalImage, itemToChange, background);
+      const newItem = await editItemWithPrompt(originalImage, itemToEdit, prompt);
       setTransformedImages(current =>
         current!.map((item, i) => (i === index ? { ...newItem, isLoading: false } : item))
       );
     } catch (err) {
-      console.error("Background change failed:", err);
+      console.error("Item edit failed:", err);
       setTransformedImages(current =>
         current!.map((item, i) => (i === index ? { ...item, isLoading: false } : item))
       );
     }
   }, [originalImage, transformedImages]);
+
+  const handleBatchBackgroundChange = useCallback(async (background: string) => {
+    if (!originalImage || !transformedImages) return;
+
+    setTransformedImages(current =>
+      current!.map(item => ({ ...item, isLoading: true }))
+    );
+
+    try {
+      const newItems = await Promise.all(
+        transformedImages.map(item => changeItemBackground(originalImage, item, background))
+      );
+      setTransformedImages(newItems.map(item => ({ ...item, isLoading: false })));
+    } catch (err) {
+      console.error("Batch background change failed:", err);
+      setTransformedImages(current =>
+        current!.map(item => ({ ...item, isLoading: false }))
+      );
+    }
+  }, [originalImage, transformedImages]);
+
 
   const handleDownloadAll = useCallback(async () => {
     if (!transformedImages || transformedImages.length === 0) return;
@@ -137,7 +158,8 @@ const App: React.FC = () => {
             onRetryItem={handleRetryItem}
             onRetryComposite={handleRetryComposite}
             onDownloadAll={handleDownloadAll}
-            onItemBackgroundChange={handleItemBackgroundChange}
+            onItemEdit={handleItemEdit}
+            onBatchBackgroundChange={handleBatchBackgroundChange}
             isDownloadingAll={isZipping}
           />
         );

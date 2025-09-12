@@ -15,7 +15,7 @@ interface ClothingItem {
 
 const generateItemImage = async (base64Image: string, mimeType: string, item: ClothingItem, backgroundPrompt: string): Promise<TransformedImage> => {
     const isTransparent = backgroundPrompt.includes('transparent');
-    const extractionPrompt = `From the provided original image, isolate ONLY the '${item.description}'. Completely remove the person, other clothing, and the original background. Place the isolated garment on ${backgroundPrompt}. The resulting image must be high-fidelity, preserving all original fabric textures, folds, colors, and details. Ensure the lighting on the garment appears natural and three-dimensional. ${isTransparent ? 'The resulting image MUST be a PNG with an alpha channel.' : 'The background should be suitable for a professional e-commerce fashion catalog.'}`;
+    const extractionPrompt = `From the provided original image, which may be a screenshot, isolate ONLY the '${item.description}'. Completely remove the person, other clothing, the original background, and any non-clothing elements such as text, icons, watermarks, or user interface elements. Place the isolated garment on ${backgroundPrompt}. The resulting image must be high-fidelity, preserving all original fabric textures, folds, colors, and details. Ensure the lighting on the garment appears natural and three-dimensional. ${isTransparent ? 'The resulting image MUST be a PNG with an alpha channel.' : 'The background should be suitable for a professional e-commerce fashion catalog.'}`;
 
     const extractionResponse = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image-preview',
@@ -49,7 +49,7 @@ const extractSingleItem = async (base64Image: string, mimeType: string, item: Cl
 
 const generateCompositeImage = async (base64Image: string, mimeType: string, items: ClothingItem[]): Promise<TransformedImage> => {
     const itemDescriptions = items.map(item => `'${item.description}'`).join(', ');
-    const prompt = `From the provided original image, extract ALL of the following items: ${itemDescriptions}. Arrange them all together aesthetically on a single, clean, seamless, photorealistic white studio background. This arrangement should resemble a professional fashion 'flat lay' or collection shot. Each item must maintain its high-fidelity, photorealistic quality, natural lighting, and three-dimensional appearance. Do not include the person or any other background elements.`;
+    const prompt = `From the provided original image, which may be a screenshot, extract ALL of the following items: ${itemDescriptions}. For each item, you must completely remove any non-clothing elements like text, icons, watermarks, or user interface elements present in the source. Arrange the cleaned items together aesthetically on a single, clean, seamless, photorealistic white studio background. This arrangement should resemble a professional fashion 'flat lay' or collection shot. Each item must maintain its high-fidelity, photorealistic quality, natural lighting, and three-dimensional appearance. Do not include the person or any other background elements.`;
 
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image-preview',
@@ -167,6 +167,50 @@ export const retryCompositeExtraction = async (imageFile: File, items: Transform
             throw new Error("The retry request was blocked due to safety policies.");
         }
         throw new Error("Failed to re-process the composite image with the AI model.");
+    }
+};
+
+export const editItemWithPrompt = async (imageFile: File, itemToChange: TransformedImage, userPrompt: string): Promise<TransformedImage> => {
+    try {
+        const base64Image = await fileToBase64(imageFile);
+        const mimeType = imageFile.type;
+        
+        const editPrompt = `From the provided original image, which may be a screenshot, isolate ONLY the '${itemToChange.description}'. During isolation, you must completely remove any non-clothing elements like text, icons, watermarks, or user interface elements from the source image. 
+        Once isolated, apply this modification: "${userPrompt}". 
+        Finally, place the modified garment on a clean, seamless, photorealistic white studio background.
+        If the modification requests a transparent background, the result MUST be a PNG with an alpha channel and a transparent background.
+        The resulting image must be high-fidelity, preserving fabric textures, folds, and details, unless the modification specifies otherwise.`;
+
+        const extractionResponse = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-image-preview',
+            contents: {
+                parts: [
+                    { inlineData: { data: base64Image, mimeType: mimeType } },
+                    { text: editPrompt }
+                ]
+            },
+            config: {
+                responseModalities: [Modality.IMAGE, Modality.TEXT],
+            }
+        });
+        
+        for (const part of extractionResponse.candidates?.[0]?.content?.parts || []) {
+            if (part.inlineData) {
+                const base64ImageBytes: string = part.inlineData.data;
+                return {
+                    name: itemToChange.name,
+                    description: itemToChange.description,
+                    imageUrl: `data:${part.inlineData.mimeType};base64,${base64ImageBytes}`
+                };
+            }
+        }
+        throw new Error(`The AI failed to apply the edit for "${itemToChange.name}".`);
+    } catch (error) {
+        console.error("Error editing item with prompt:", error);
+        if (error instanceof Error && error.message.includes('SAFETY')) {
+            throw new Error("The edit request was blocked due to safety policies.");
+        }
+        throw new Error("Failed to edit the item with the AI model.");
     }
 };
 

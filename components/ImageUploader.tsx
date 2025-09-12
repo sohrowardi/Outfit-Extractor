@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 
 interface ImageUploaderProps {
   onImageUpload: (file: File) => void;
@@ -10,6 +10,29 @@ interface ImageUploaderProps {
 const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, error, onReset }) => {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handlePaste = (event: ClipboardEvent) => {
+      const pastedFiles = event.clipboardData?.files;
+      if (!pastedFiles || pastedFiles.length === 0) {
+        return;
+      }
+
+      // Find the first actual image file among the pasted files
+      const imageFile = Array.from(pastedFiles).find(file => file.type.startsWith('image/'));
+
+      if (imageFile) {
+        event.preventDefault();
+        onImageUpload(imageFile);
+      }
+    };
+
+    document.addEventListener('paste', handlePaste);
+
+    return () => {
+      document.removeEventListener('paste', handlePaste);
+    };
+  }, [onImageUpload]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -77,6 +100,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, error, onR
         onDragOver={handleDrag}
         onDrop={handleDrop}
         onClick={openFileDialog}
+        aria-label="Image upload area"
       >
         <input
           ref={fileInputRef}
@@ -84,6 +108,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, error, onR
           accept="image/png, image/jpeg, image/webp"
           className="hidden"
           onChange={handleFileChange}
+          aria-hidden="true"
         />
         <div className="flex flex-col items-center justify-center space-y-4">
           <svg
@@ -92,6 +117,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, error, onR
             stroke="currentColor"
             viewBox="0 0 24 24"
             xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
           >
             <path
               strokeLinecap="round"
@@ -101,7 +127,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, error, onR
             />
           </svg>
           <p className="text-xl font-semibold text-gray-300">
-            Drag & Drop your image here
+            Paste, Drag & Drop your image here
           </p>
           <p className="text-gray-400">or</p>
           <button

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TransformedImage } from '../types';
 
 interface ResultViewProps {
@@ -9,21 +9,47 @@ interface ResultViewProps {
   onRetryItem: (index: number) => void;
   onRetryComposite: () => void;
   onDownloadAll: () => void;
-  onItemBackgroundChange: (index: number, background: string) => void;
+  onItemEdit: (index: number, prompt: string) => void;
+  onBatchBackgroundChange: (background: string) => void;
   isDownloadingAll: boolean;
 }
 
-const ResultView: React.FC<ResultViewProps> = ({ originalImage, transformedImages, compositeImage, onReset, onRetryItem, onRetryComposite, onDownloadAll, onItemBackgroundChange, isDownloadingAll }) => {
-  const [activePalette, setActivePalette] = useState<number | null>(null);
+const ResultView: React.FC<ResultViewProps> = ({ originalImage, transformedImages, compositeImage, onReset, onRetryItem, onRetryComposite, onDownloadAll, onItemEdit, onBatchBackgroundChange, isDownloadingAll }) => {
+  const [editingState, setEditingState] = useState<{ index: number | null; text: string }>({ index: null, text: '' });
+  const [isBatchMenuOpen, setIsBatchMenuOpen] = useState(false);
   const isAnyItemLoading = transformedImages.some(item => item.isLoading) || (compositeImage?.isLoading ?? false);
-  
-  const handlePaletteToggle = (index: number) => {
-    setActivePalette(current => (current === index ? null : index));
+  const batchMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+        if (batchMenuRef.current && !batchMenuRef.current.contains(event.target as Node)) {
+            setIsBatchMenuOpen(false);
+        }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const handleEditToggle = (index: number) => {
+    setEditingState(current => ({
+      index: current.index === index ? null : index,
+      text: ''
+    }));
   };
 
-  const handleBackgroundSelect = (index: number, background: string) => {
-    onItemBackgroundChange(index, background);
-    setActivePalette(null);
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingState.index !== null && editingState.text.trim()) {
+      onItemEdit(editingState.index, editingState.text);
+      setEditingState({ index: null, text: '' });
+    }
+  };
+  
+  const handleBatchBackgroundSelect = (background: string) => {
+    onBatchBackgroundChange(background);
+    setIsBatchMenuOpen(false);
   };
 
   return (
@@ -63,19 +89,26 @@ const ResultView: React.FC<ResultViewProps> = ({ originalImage, transformedImage
                     </div>
                     <div className="text-sm font-medium text-center text-gray-300 flex-grow mb-2 min-h-[2.5rem] flex items-center justify-center">
                         <span className="flex-1 font-bold">{compositeImage.name}</span>
-                        <button onClick={onRetryComposite} disabled={compositeImage.isLoading} className="ml-2 text-gray-400 hover:text-white transition-colors duration-200 p-1 disabled:opacity-50 disabled:cursor-not-allowed" title="Retry Outfit Generation">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 9a9 9 0 0114.13-5.12M20 15a9 9 0 01-14.13 5.12" /></svg>
-                        </button>
                     </div>
-                    <a
-                      href={compositeImage.imageUrl}
-                      download={`${compositeImage.name.replace(/\s+/g, '_').toLowerCase()}.png`}
-                      onClick={(e) => { if (compositeImage.isLoading) e.preventDefault(); }}
-                      className={`w-full text-center bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-3 rounded-md transition-all duration-300 text-xs flex items-center justify-center space-x-1.5 ${compositeImage.isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                      <span>Download</span>
-                    </a>
+                    <div className="mt-auto flex items-center space-x-3">
+                      <a
+                        href={compositeImage.imageUrl}
+                        download={`${compositeImage.name.replace(/\s+/g, '_').toLowerCase()}.png`}
+                        onClick={(e) => { if (compositeImage.isLoading) e.preventDefault(); }}
+                        className={`flex-grow text-center bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-3 rounded-md transition-all duration-300 text-xs flex items-center justify-center space-x-1.5 ${compositeImage.isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                        <span>Download</span>
+                      </a>
+                      <button
+                          onClick={onRetryComposite}
+                          disabled={compositeImage.isLoading}
+                          title="Try Again"
+                          className="flex-shrink-0 bg-transparent hover:bg-gray-700/50 text-gray-300 hover:text-white font-bold p-2 rounded-md transition-all duration-300 border border-gray-600 hover:border-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 9a9 9 0 0114.13-5.12M20 15a9 9 0 01-14.13 5.12" /></svg>
+                      </button>
+                    </div>
                  </div>
               )}
               {/* Individual Item Cards */}
@@ -95,20 +128,37 @@ const ResultView: React.FC<ResultViewProps> = ({ originalImage, transformedImage
                   </div>
                   <div className="text-sm font-medium text-center text-gray-300 flex-grow mb-2 min-h-[2.5rem] flex items-center justify-center">
                     <span className="flex-1">{item.name}</span>
-                     <button onClick={() => handlePaletteToggle(index)} className="ml-2 text-gray-400 hover:text-white transition-colors duration-200 p-1">
+                     <button onClick={() => handleEditToggle(index)} className="ml-2 text-gray-400 hover:text-white transition-colors duration-200 p-1" title="Edit Item">
                         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>
                      </button>
                   </div>
-                  {activePalette === index && (
-                     <div className="mb-2 p-2 bg-gray-900/50 rounded-md">
-                        <p className="text-xs text-center text-gray-400 mb-2">Change Background</p>
-                        <div className="flex justify-center items-center space-x-3">
-                           <button title="White Background" onClick={() => handleBackgroundSelect(index, 'white')} className="w-6 h-6 rounded-full bg-white border-2 border-gray-400 hover:scale-110 transition-transform"></button>
-                           <button title="Light Gray Background" onClick={() => handleBackgroundSelect(index, 'light gray')} className="w-6 h-6 rounded-full bg-gray-300 border-2 border-gray-500 hover:scale-110 transition-transform"></button>
-                           <button title="Transparent Background" onClick={() => handleBackgroundSelect(index, 'transparent')} className="w-6 h-6 rounded-full border-2 border-gray-400 hover:scale-110 transition-transform" style={{background: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'8\' height=\'8\' viewBox=\'0 0 8 8\'%3E%3Cg fill=\'%23808080\' fill-opacity=\'0.4\'%3E%3Cpath fill-rule=\'evenodd\' d=\'M0 0h4v4H0V0zm4 4h4v4H4V4z\'/%3E%3C/g%3E%3C/svg%3E")'}}>
-                           </button>
+                  {editingState.index === index && (
+                    <form onSubmit={handleEditSubmit} className="mb-2 p-2 bg-gray-900/50 rounded-md space-y-2">
+                        <input
+                            type="text"
+                            value={editingState.text}
+                            onChange={(e) => setEditingState({ ...editingState, text: e.target.value })}
+                            placeholder="e.g., Change color to blue"
+                            className="w-full bg-gray-700 text-white text-xs p-2 rounded-md border border-gray-600 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                            autoFocus
+                        />
+                        <div className="flex justify-end space-x-2">
+                            <button
+                                type="button"
+                                onClick={() => setEditingState({ index: null, text: '' })}
+                                className="text-xs bg-gray-600 hover:bg-gray-500 text-gray-300 font-semibold py-1 px-3 rounded-md transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className="text-xs bg-purple-600 hover:bg-purple-700 text-white font-semibold py-1 px-3 rounded-md transition-colors disabled:opacity-50"
+                                disabled={!editingState.text.trim() || item.isLoading}
+                            >
+                                Apply
+                            </button>
                         </div>
-                     </div>
+                    </form>
                   )}
                   <div className="mt-auto flex items-center space-x-3">
                     <a
@@ -145,6 +195,38 @@ const ResultView: React.FC<ResultViewProps> = ({ originalImage, transformedImage
            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 9a9 9 0 0114.13-5.12M20 15a9 9 0 01-14.13 5.12" /></svg>
           <span>Start Over</span>
         </button>
+        <div className="relative" ref={batchMenuRef}>
+            <button
+                onClick={() => setIsBatchMenuOpen(prev => !prev)}
+                disabled={isAnyItemLoading}
+                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition-all duration-300 text-lg flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                <span>Batch Edit</span>
+            </button>
+            {isBatchMenuOpen && (
+                <div className="absolute bottom-full mb-2 w-full sm:w-64 bg-gray-700 border border-gray-600 rounded-lg shadow-xl py-2 z-20">
+                    <p className="text-sm font-semibold text-gray-300 px-4 pb-2 border-b border-gray-600">Apply to all items:</p>
+                    <ul className="text-gray-300">
+                        <li>
+                            <button onClick={() => handleBatchBackgroundSelect('white')} className="w-full text-left px-4 py-2 text-sm hover:bg-purple-600 hover:text-white transition-colors duration-200">
+                                Change background to White
+                            </button>
+                        </li>
+                        <li>
+                            <button onClick={() => handleBatchBackgroundSelect('light gray')} className="w-full text-left px-4 py-2 text-sm hover:bg-purple-600 hover:text-white transition-colors duration-200">
+                                Change background to Light Gray
+                            </button>
+                        </li>
+                        <li>
+                            <button onClick={() => handleBatchBackgroundSelect('transparent')} className="w-full text-left px-4 py-2 text-sm hover:bg-purple-600 hover:text-white transition-colors duration-200">
+                                Change background to Transparent
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            )}
+        </div>
         <button
           onClick={onDownloadAll}
           disabled={isDownloadingAll || isAnyItemLoading}
