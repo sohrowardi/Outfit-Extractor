@@ -13,8 +13,9 @@ interface ClothingItem {
   description: string;
 }
 
-const extractSingleItem = async (base64Image: string, mimeType: string, item: ClothingItem): Promise<TransformedImage> => {
-    const extractionPrompt = `From the provided original image, isolate ONLY the '${item.description}'. Completely remove the person, other clothing, and the original background. Place the isolated garment on a clean, seamless, photorealistic white studio background. The resulting image must be high-fidelity, preserving all original fabric textures, folds, colors, and details. Ensure the lighting on the garment appears natural and three-dimensional, suitable for a professional e-commerce fashion catalog.`;
+const generateItemImage = async (base64Image: string, mimeType: string, item: ClothingItem, backgroundPrompt: string): Promise<TransformedImage> => {
+    const isTransparent = backgroundPrompt.includes('transparent');
+    const extractionPrompt = `From the provided original image, isolate ONLY the '${item.description}'. Completely remove the person, other clothing, and the original background. Place the isolated garment on ${backgroundPrompt}. The resulting image must be high-fidelity, preserving all original fabric textures, folds, colors, and details. Ensure the lighting on the garment appears natural and three-dimensional. ${isTransparent ? 'The resulting image MUST be a PNG with an alpha channel.' : 'The background should be suitable for a professional e-commerce fashion catalog.'}`;
 
     const extractionResponse = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image-preview',
@@ -42,12 +43,46 @@ const extractSingleItem = async (base64Image: string, mimeType: string, item: Cl
     throw new Error(`The AI failed to generate an image for "${item.itemName}".`);
 }
 
-export const transformClothingImage = async (imageFile: File): Promise<TransformedImage[]> => {
+const extractSingleItem = async (base64Image: string, mimeType: string, item: ClothingItem): Promise<TransformedImage> => {
+    return generateItemImage(base64Image, mimeType, item, 'a clean, seamless, photorealistic white studio background');
+}
+
+const generateCompositeImage = async (base64Image: string, mimeType: string, items: ClothingItem[]): Promise<TransformedImage> => {
+    const itemDescriptions = items.map(item => `'${item.description}'`).join(', ');
+    const prompt = `From the provided original image, extract ALL of the following items: ${itemDescriptions}. Arrange them all together aesthetically on a single, clean, seamless, photorealistic white studio background. This arrangement should resemble a professional fashion 'flat lay' or collection shot. Each item must maintain its high-fidelity, photorealistic quality, natural lighting, and three-dimensional appearance. Do not include the person or any other background elements.`;
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image-preview',
+        contents: {
+            parts: [
+                { inlineData: { data: base64Image, mimeType: mimeType } },
+                { text: prompt }
+            ]
+        },
+        config: {
+            responseModalities: [Modality.IMAGE, Modality.TEXT],
+        }
+    });
+
+    for (const part of response.candidates?.[0]?.content?.parts || []) {
+        if (part.inlineData) {
+            const base64ImageBytes: string = part.inlineData.data;
+            return {
+                name: "Complete Outfit",
+                description: "A composite image of all extracted items.",
+                imageUrl: `data:${part.inlineData.mimeType};base64,${base64ImageBytes}`
+            };
+        }
+    }
+    throw new Error("The AI failed to generate the composite outfit image.");
+};
+
+
+export const transformClothingImage = async (imageFile: File): Promise<{ individualItems: TransformedImage[], compositeImage: TransformedImage }> => {
   try {
     const base64Image = await fileToBase64(imageFile);
     const mimeType = imageFile.type;
 
-    // Step 1: Identify all clothing items
     const identificationPrompt = "Analyze this image and identify every distinct clothing item and accessory worn by the person. For each item, provide a short, descriptive name (e.g., 'Blue Denim Jeans'). Respond with a JSON array of objects, where each object has 'itemName' and 'description' properties.";
     
     const identificationResponse = await ai.models.generateContent({
@@ -80,15 +115,16 @@ export const transformClothingImage = async (imageFile: File): Promise<Transform
         throw new Error("The AI could not identify any clothing items in the image.");
     }
 
-    // Step 2: Extract each item individually
     const extractionPromises = identifiedItems.map(item => extractSingleItem(base64Image, mimeType, item));
-    const transformedImages = await Promise.all(extractionPromises);
+    const compositePromise = generateCompositeImage(base64Image, mimeType, identifiedItems);
+
+    const [compositeImage, ...individualItems] = await Promise.all([compositePromise, ...extractionPromises]);
     
-    if (transformedImages.length === 0) {
+    if (individualItems.length === 0) {
         throw new Error("The AI identified items but failed to generate any images.");
     }
 
-    return transformedImages;
+    return { individualItems, compositeImage };
 
   } catch (error) {
     console.error("Error transforming image:", error);
@@ -115,5 +151,49 @@ export const retryExtraction = async (imageFile: File, itemToRetry: { name: stri
             throw new Error("The retry request was blocked due to safety policies.");
         }
         throw new Error("Failed to re-process the item with the AI model.");
+    }
+};
+
+export const retryCompositeExtraction = async (imageFile: File, items: TransformedImage[]): Promise<TransformedImage> => {
+    try {
+        const base64Image = await fileToBase64(imageFile);
+        const mimeType = imageFile.type;
+        const clothingItems: ClothingItem[] = items.map(item => ({ itemName: item.name, description: item.description }));
+
+        return await generateCompositeImage(base64Image, mimeType, clothingItems);
+    } catch (error) {
+        console.error("Error retrying composite extraction:", error);
+        if (error instanceof Error && error.message.includes('SAFETY')) {
+            throw new Error("The retry request was blocked due to safety policies.");
+        }
+        throw new Error("Failed to re-process the composite image with the AI model.");
+    }
+};
+
+export const changeItemBackground = async (imageFile: File, itemToChange: TransformedImage, background: string): Promise<TransformedImage> => {
+    try {
+        const base64Image = await fileToBase64(imageFile);
+        const mimeType = imageFile.type;
+        const clothingItem: ClothingItem = { itemName: itemToChange.name, description: itemToChange.description };
+        
+        let backgroundPrompt: string;
+        switch (background) {
+            case 'transparent':
+                backgroundPrompt = 'a transparent background';
+                break;
+            case 'light gray':
+                backgroundPrompt = 'a clean, seamless, photorealistic light gray studio background';
+                break;
+            default:
+                backgroundPrompt = 'a clean, seamless, photorealistic white studio background';
+        }
+
+        return await generateItemImage(base64Image, mimeType, clothingItem, backgroundPrompt);
+    } catch (error) {
+        console.error("Error changing item background:", error);
+        if (error instanceof Error && error.message.includes('SAFETY')) {
+            throw new Error("The background change request was blocked due to safety policies.");
+        }
+        throw new Error("Failed to change the item's background with the AI model.");
     }
 };

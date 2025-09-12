@@ -3,7 +3,7 @@ import ImageUploader from './components/ImageUploader';
 import ProcessingView from './components/ProcessingView';
 import ResultView from './components/ResultView';
 import { AppState, TransformedImage } from './types';
-import { transformClothingImage, retryExtraction } from './services/geminiService';
+import { transformClothingImage, retryExtraction, changeItemBackground, retryCompositeExtraction } from './services/geminiService';
 import { createAndDownloadZip } from './utils/fileUtils';
 
 const App: React.FC = () => {
@@ -11,6 +11,7 @@ const App: React.FC = () => {
   const [originalImage, setOriginalImage] = useState<File | null>(null);
   const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null);
   const [transformedImages, setTransformedImages] = useState<TransformedImage[] | null>(null);
+  const [compositeImage, setCompositeImage] = useState<TransformedImage | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isZipping, setIsZipping] = useState<boolean>(false);
 
@@ -20,10 +21,12 @@ const App: React.FC = () => {
     setAppState(AppState.PROCESSING);
     setError(null);
     setTransformedImages(null);
+    setCompositeImage(null);
 
     try {
-      const resultImageArray = await transformClothingImage(file);
-      setTransformedImages(resultImageArray);
+      const { individualItems, compositeImage } = await transformClothingImage(file);
+      setTransformedImages(individualItems);
+      setCompositeImage(compositeImage);
       setAppState(AppState.RESULT);
     } catch (err) {
       console.error(err);
@@ -38,6 +41,7 @@ const App: React.FC = () => {
     if(originalImageUrl) URL.revokeObjectURL(originalImageUrl);
     setOriginalImageUrl(null);
     setTransformedImages(null);
+    setCompositeImage(null);
     setError(null);
   }, [originalImageUrl]);
 
@@ -46,7 +50,6 @@ const App: React.FC = () => {
 
     const itemToRetry = transformedImages[index];
 
-    // Set loading state for the specific item
     setTransformedImages(current =>
       current!.map((item, i) => i === index ? { ...item, isLoading: true } : item)
     );
@@ -54,16 +57,49 @@ const App: React.FC = () => {
     try {
       const newItem = await retryExtraction(originalImage, itemToRetry);
 
-      // Update state with the new item
       setTransformedImages(current =>
         current!.map((item, i) => i === index ? { ...newItem, isLoading: false } : item)
       );
     } catch (err) {
       console.error("Retry failed:", err);
-      // In a real app, you might show a temporary error message on the item card.
-      // For now, we just reset the loading state.
       setTransformedImages(current =>
         current!.map((item, i) => i === index ? { ...item, isLoading: false } : item)
+      );
+    }
+  }, [originalImage, transformedImages]);
+  
+  const handleRetryComposite = useCallback(async () => {
+    if (!originalImage || !transformedImages) return;
+
+    setCompositeImage(current => current ? { ...current, isLoading: true } : null);
+
+    try {
+      const newComposite = await retryCompositeExtraction(originalImage, transformedImages);
+      setCompositeImage({ ...newComposite, isLoading: false });
+    } catch (err) {
+      console.error("Composite retry failed:", err);
+      setCompositeImage(current => current ? { ...current, isLoading: false } : null);
+    }
+  }, [originalImage, transformedImages]);
+
+  const handleItemBackgroundChange = useCallback(async (index: number, background: string) => {
+    if (!originalImage || !transformedImages) return;
+
+    const itemToChange = transformedImages[index];
+
+    setTransformedImages(current =>
+      current!.map((item, i) => (i === index ? { ...item, isLoading: true } : item))
+    );
+
+    try {
+      const newItem = await changeItemBackground(originalImage, itemToChange, background);
+      setTransformedImages(current =>
+        current!.map((item, i) => (i === index ? { ...newItem, isLoading: false } : item))
+      );
+    } catch (err) {
+      console.error("Background change failed:", err);
+      setTransformedImages(current =>
+        current!.map((item, i) => (i === index ? { ...item, isLoading: false } : item))
       );
     }
   }, [originalImage, transformedImages]);
@@ -96,9 +132,12 @@ const App: React.FC = () => {
           <ResultView
             originalImage={originalImageUrl}
             transformedImages={transformedImages}
+            compositeImage={compositeImage}
             onReset={handleReset}
             onRetryItem={handleRetryItem}
+            onRetryComposite={handleRetryComposite}
             onDownloadAll={handleDownloadAll}
+            onItemBackgroundChange={handleItemBackgroundChange}
             isDownloadingAll={isZipping}
           />
         );
