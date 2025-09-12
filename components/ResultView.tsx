@@ -10,11 +10,12 @@ interface ResultViewProps {
   onRetryComposite: () => void;
   onDownloadAll: () => void;
   onItemEdit: (index: number, prompt: string) => void;
+  onEditComposite: (prompt: string) => void;
   onBatchBackgroundChange: (background: string) => void;
   isDownloadingAll: boolean;
 }
 
-const ResultView: React.FC<ResultViewProps> = ({ originalImage, transformedImages, compositeImage, onReset, onRetryItem, onRetryComposite, onDownloadAll, onItemEdit, onBatchBackgroundChange, isDownloadingAll }) => {
+const ResultView: React.FC<ResultViewProps> = ({ originalImage, transformedImages, compositeImage, onReset, onRetryItem, onRetryComposite, onDownloadAll, onItemEdit, onEditComposite, onBatchBackgroundChange, isDownloadingAll }) => {
   const [editingState, setEditingState] = useState<{ index: number | null; text: string }>({ index: null, text: '' });
   const [isBatchMenuOpen, setIsBatchMenuOpen] = useState(false);
   const isAnyItemLoading = transformedImages.some(item => item.isLoading) || (compositeImage?.isLoading ?? false);
@@ -42,7 +43,11 @@ const ResultView: React.FC<ResultViewProps> = ({ originalImage, transformedImage
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingState.index !== null && editingState.text.trim()) {
-      onItemEdit(editingState.index, editingState.text);
+      if (editingState.index === -1) {
+        onEditComposite(editingState.text);
+      } else {
+        onItemEdit(editingState.index, editingState.text);
+      }
       setEditingState({ index: null, text: '' });
     }
   };
@@ -89,7 +94,38 @@ const ResultView: React.FC<ResultViewProps> = ({ originalImage, transformedImage
                     </div>
                     <div className="text-sm font-medium text-center text-gray-300 flex-grow mb-2 min-h-[2.5rem] flex items-center justify-center">
                         <span className="flex-1 font-bold">{compositeImage.name}</span>
+                         <button onClick={() => handleEditToggle(-1)} className="ml-2 text-gray-400 hover:text-white transition-colors duration-200 p-1" title="Edit Item">
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>
+                         </button>
                     </div>
+                    {editingState.index === -1 && (
+                        <form onSubmit={handleEditSubmit} className="mb-2 p-2 bg-gray-900/50 rounded-md space-y-2">
+                            <input
+                                type="text"
+                                value={editingState.text}
+                                onChange={(e) => setEditingState({ ...editingState, text: e.target.value })}
+                                placeholder="e.g., Change background"
+                                className="w-full bg-gray-700 text-white text-xs p-2 rounded-md border border-gray-600 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none"
+                                autoFocus
+                            />
+                            <div className="flex justify-end space-x-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingState({ index: null, text: '' })}
+                                    className="text-xs bg-gray-600 hover:bg-gray-500 text-gray-300 font-semibold py-1 px-3 rounded-md transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="text-xs bg-purple-600 hover:bg-purple-700 text-white font-semibold py-1 px-3 rounded-md transition-colors disabled:opacity-50"
+                                    disabled={!editingState.text.trim() || compositeImage.isLoading}
+                                >
+                                    Apply
+                                </button>
+                            </div>
+                        </form>
+                    )}
                     <div className="mt-auto flex items-center space-x-3">
                       <a
                         href={compositeImage.imageUrl}

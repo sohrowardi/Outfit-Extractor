@@ -170,6 +170,50 @@ export const retryCompositeExtraction = async (imageFile: File, items: Transform
     }
 };
 
+export const editCompositeWithPrompt = async (imageFile: File, items: TransformedImage[], userPrompt: string): Promise<TransformedImage> => {
+    try {
+        const base64Image = await fileToBase64(imageFile);
+        const mimeType = imageFile.type;
+        
+        const itemDescriptions = items.map(item => `'${item.description}'`).join(', ');
+        const editPrompt = `From the provided original image, which may be a screenshot, extract ALL of the following items: ${itemDescriptions}. For each item, you must completely remove any non-clothing elements like text, icons, watermarks, or user interface elements present in the source.
+        Arrange the cleaned items together aesthetically on a single, clean, seamless, photorealistic white studio background.
+        Then, apply this modification to the entire composite image: "${userPrompt}".
+        The arrangement should resemble a professional fashion 'flat lay' or collection shot. Each item must maintain its high-fidelity, photorealistic quality. Do not include the person or any other background elements.`;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash-image-preview',
+            contents: {
+                parts: [
+                    { inlineData: { data: base64Image, mimeType: mimeType } },
+                    { text: editPrompt }
+                ]
+            },
+            config: {
+                responseModalities: [Modality.IMAGE, Modality.TEXT],
+            }
+        });
+
+        for (const part of response.candidates?.[0]?.content?.parts || []) {
+            if (part.inlineData) {
+                const base64ImageBytes: string = part.inlineData.data;
+                return {
+                    name: "Complete Outfit",
+                    description: "A composite image of all extracted items.",
+                    imageUrl: `data:${part.inlineData.mimeType};base64,${base64ImageBytes}`
+                };
+            }
+        }
+        throw new Error("The AI failed to apply the edit to the composite image.");
+    } catch (error) {
+        console.error("Error editing composite with prompt:", error);
+        if (error instanceof Error && error.message.includes('SAFETY')) {
+            throw new Error("The composite edit request was blocked due to safety policies.");
+        }
+        throw new Error("Failed to edit the composite image with the AI model.");
+    }
+};
+
 export const editItemWithPrompt = async (imageFile: File, itemToChange: TransformedImage, userPrompt: string): Promise<TransformedImage> => {
     try {
         const base64Image = await fileToBase64(imageFile);

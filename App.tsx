@@ -3,7 +3,7 @@ import ImageUploader from './components/ImageUploader';
 import ProcessingView from './components/ProcessingView';
 import ResultView from './components/ResultView';
 import { AppState, TransformedImage } from './types';
-import { transformClothingImage, retryExtraction, changeItemBackground, retryCompositeExtraction, editItemWithPrompt } from './services/geminiService';
+import { transformClothingImage, retryExtraction, changeItemBackground, retryCompositeExtraction, editItemWithPrompt, editCompositeWithPrompt } from './services/geminiService';
 import { createAndDownloadZip } from './utils/fileUtils';
 
 const App: React.FC = () => {
@@ -104,6 +104,20 @@ const App: React.FC = () => {
     }
   }, [originalImage, transformedImages]);
 
+  const handleCompositeEdit = useCallback(async (prompt: string) => {
+    if (!originalImage || !transformedImages || !prompt) return;
+
+    setCompositeImage(current => current ? { ...current, isLoading: true } : null);
+
+    try {
+        const newComposite = await editCompositeWithPrompt(originalImage, transformedImages, prompt);
+        setCompositeImage({ ...newComposite, isLoading: false });
+    } catch (err) {
+        console.error("Composite edit failed:", err);
+        setCompositeImage(current => current ? { ...current, isLoading: false } : null);
+    }
+  }, [originalImage, transformedImages]);
+
   const handleBatchBackgroundChange = useCallback(async (background: string) => {
     if (!originalImage || !transformedImages) return;
 
@@ -159,6 +173,7 @@ const App: React.FC = () => {
             onRetryComposite={handleRetryComposite}
             onDownloadAll={handleDownloadAll}
             onItemEdit={handleItemEdit}
+            onEditComposite={handleCompositeEdit}
             onBatchBackgroundChange={handleBatchBackgroundChange}
             isDownloadingAll={isZipping}
           />
