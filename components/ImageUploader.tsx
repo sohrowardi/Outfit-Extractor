@@ -74,19 +74,19 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, error, onR
   };
 
   const dragDropClasses = isDragging
-    ? 'border-purple-400 bg-gray-700/50 scale-105'
-    : 'border-gray-600 hover:border-purple-400 hover:bg-gray-700/30';
+    ? 'border-[#ff91af] bg-pink-50/50 scale-105'
+    : 'border-gray-300 hover:border-[#ff91af] hover:bg-pink-50/30';
 
   return (
     <div className="flex flex-col items-center justify-center text-center">
       {error && (
-        <div className="bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg mb-6 w-full max-w-md">
+        <div className="bg-red-100 border border-red-300 text-red-700 p-4 rounded-lg mb-6 w-full max-w-md">
           <p className="font-semibold">An Error Occurred</p>
           <p className="text-sm">{error}</p>
           { onReset && 
             <button
                 onClick={onReset}
-                className="mt-3 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-all duration-300"
+                className="mt-3 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition-all duration-300"
             >
                 Try Again
             </button>
@@ -112,7 +112,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, error, onR
         />
         <div className="flex flex-col items-center justify-center space-y-4">
           <svg
-            className="w-16 h-16 text-gray-500"
+            className="w-16 h-16 text-gray-400"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -126,17 +126,17 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, error, onR
               d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
             />
           </svg>
-          <p className="text-xl font-semibold text-gray-300">
+          <p className="text-xl font-semibold text-[#ff91af]">
             Paste, Drag & Drop your image here
           </p>
-          <p className="text-gray-400">or</p>
+          <p className="text-gray-500">or</p>
           <button
             type="button"
-            className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-6 rounded-lg transition-all duration-300"
+            className="bg-[#ff91af] hover:brightness-95 text-white font-bold py-2 px-6 rounded-lg transition-all duration-300"
           >
             Browse Files
           </button>
-          <p className="text-xs text-gray-500 mt-2">Supports: PNG, JPG, WEBP</p>
+          <p className="text-xs text-gray-400 mt-2">Supports: PNG, JPG, WEBP</p>
         </div>
       </div>
     </div>

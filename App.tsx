@@ -187,17 +187,17 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center justify-center p-4 sm:p-6 font-sans">
+    <div className="min-h-screen bg-gray-100 text-gray-800 flex flex-col items-center justify-center p-4 sm:p-6 font-sans">
       <header className="text-center mb-8">
-        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600">
+        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-[#ff91af]">
           Outfit Extractor
         </h1>
-        <p className="text-gray-400 mt-2 text-lg">
+        <p className="text-[#ff91af] opacity-90 mt-2 text-lg">
           Transform your clothing photos into a professional catalog.
         </p>
       </header>
       <main className="w-full max-w-7xl">
-        <div className="bg-gray-800/50 backdrop-blur-sm rounded-2xl shadow-2xl p-6 sm:p-8 border border-gray-700">
+        <div className="bg-white/50 backdrop-blur-sm rounded-2xl shadow-2xl p-6 sm:p-8 border border-gray-200">
           {renderContent()}
         </div>
       </main>
