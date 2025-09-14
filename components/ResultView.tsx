@@ -43,7 +43,7 @@ const ResultView: React.FC<ResultViewProps> = ({ originalImage, transformedImage
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editingState.index !== null && editingState.text.trim()) {
-      if (editingState.index === -1) {
+      if (editingState.index === -1) { // -1 is for the composite image
         onEditComposite(editingState.text);
       } else {
         onItemEdit(editingState.index, editingState.text);
@@ -63,7 +63,7 @@ const ResultView: React.FC<ResultViewProps> = ({ originalImage, transformedImage
         {/* Original Image Column */}
         <div className="flex flex-col items-center">
           <h3 className="text-2xl font-semibold mb-4 text-[#ff91af]">Original</h3>
-          <div className="w-full p-2 bg-gray-200/50 rounded-lg shadow-inner">
+          <div className="w-full p-2 bg-black/20 rounded-lg shadow-inner">
             <img
               src={originalImage}
               alt="Original upload"
@@ -75,82 +75,92 @@ const ResultView: React.FC<ResultViewProps> = ({ originalImage, transformedImage
         {/* Extracted Items Column */}
         <div className="flex flex-col">
           <h3 className="text-2xl font-semibold mb-4 text-[#ff91af] text-center">Extracted Items</h3>
-          <div className="w-full h-[75vh] overflow-y-auto bg-gray-200/50 rounded-lg shadow-inner p-4 space-y-4">
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {/* Composite Image Card */}
-              {compositeImage && (
-                 <div className="bg-white p-3 rounded-lg flex flex-col shadow-md border border-[#ff91af]/50">
-                    <div className="relative w-full aspect-square bg-white rounded-md mb-3">
-                        <img
-                            src={compositeImage.imageUrl}
-                            alt={compositeImage.name}
-                            className={`w-full h-full object-contain rounded-md transition-opacity duration-300 ${compositeImage.isLoading ? 'opacity-30' : 'opacity-100'}`}
-                        />
-                        {compositeImage.isLoading && (
-                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-md z-10">
-                            <div className="w-8 h-8 border-2 border-t-[#ff91af] border-r-[#ff91af] border-gray-300 border-l-gray-300 rounded-full animate-spin"></div>
-                          </div>
-                        )}
-                    </div>
-                    <div className="text-sm font-medium text-center text-gray-800 flex-grow mb-2 min-h-[2.5rem] flex items-center justify-center">
-                        <span className="flex-1 font-bold">{compositeImage.name}</span>
-                         <button onClick={() => handleEditToggle(-1)} className="ml-2 text-gray-500 hover:text-[#ff91af] transition-colors duration-200 p-1" title="Edit Item">
-                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>
-                         </button>
-                    </div>
-                    {editingState.index === -1 && (
-                        <form onSubmit={handleEditSubmit} className="mb-2 p-2 bg-gray-100 rounded-md space-y-2">
-                            <input
-                                type="text"
-                                value={editingState.text}
-                                onChange={(e) => setEditingState({ ...editingState, text: e.target.value })}
-                                placeholder="e.g., Change background"
-                                className="w-full bg-white text-gray-800 text-xs p-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-[#ff91af] focus:border-[#ff91af] outline-none"
-                                autoFocus
-                            />
-                            <div className="flex justify-end space-x-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setEditingState({ index: null, text: '' })}
-                                    className="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-1 px-3 rounded-md transition-colors"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="text-xs bg-[#ff91af] hover:brightness-95 text-white font-semibold py-1 px-3 rounded-md transition-colors disabled:opacity-50"
-                                    disabled={!editingState.text.trim() || compositeImage.isLoading}
-                                >
-                                    Apply
-                                </button>
+          <div className="w-full h-[75vh] overflow-y-auto bg-black/20 rounded-lg shadow-inner p-4 space-y-4">
+            
+            {/* Composite Image Section */}
+            {compositeImage && (
+              <div className="mb-6">
+                <h4 className="text-lg font-semibold mb-3 text-center text-[#ff91af]/90">Complete Outfit</h4>
+                <div className="max-w-xs mx-auto">
+                  <div className="bg-gray-800 p-3 rounded-lg flex flex-col shadow-md border border-[#ff91af]/50">
+                      <div className="relative w-full aspect-square bg-black/20 rounded-md mb-3 overflow-hidden">
+                          <img
+                              src={compositeImage.imageUrl}
+                              alt={compositeImage.name}
+                              className={`w-full h-full object-contain rounded-md transition-opacity duration-300 ${compositeImage.isLoading ? 'opacity-30' : 'opacity-100'}`}
+                          />
+                          {compositeImage.isLoading && (
+                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-md z-10">
+                              <div className="w-8 h-8 border-2 border-t-[#ff91af] border-r-[#ff91af] border-gray-600 border-l-gray-600 rounded-full animate-spin"></div>
                             </div>
-                        </form>
-                    )}
-                    <div className="mt-auto flex items-center space-x-3">
-                      <a
-                        href={compositeImage.imageUrl}
-                        download={`${compositeImage.name.replace(/\s+/g, '_').toLowerCase()}.png`}
-                        onClick={(e) => { if (compositeImage.isLoading) e.preventDefault(); }}
-                        className={`flex-grow text-center bg-[#ff91af] hover:brightness-95 text-white font-bold py-2 px-3 rounded-md transition-all duration-300 text-xs flex items-center justify-center space-x-1.5 ${compositeImage.isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                        <span>Download</span>
-                      </a>
-                      <button
-                          onClick={onRetryComposite}
-                          disabled={compositeImage.isLoading}
-                          title="Try Again"
-                          className="flex-shrink-0 bg-transparent hover:bg-gray-200/50 text-gray-500 hover:text-gray-800 font-bold p-2 rounded-md transition-all duration-300 border border-gray-300 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 9a9 9 0 0114.13-5.12M20 15a9 9 0 01-14.13 5.12" /></svg>
-                      </button>
-                    </div>
-                 </div>
-              )}
-              {/* Individual Item Cards */}
+                          )}
+                      </div>
+                      <div className="text-sm font-medium text-center text-gray-200 flex-grow mb-2 min-h-[2.5rem] flex items-center justify-center">
+                          <span className="flex-1 font-bold">{compositeImage.name}</span>
+                           <button onClick={() => handleEditToggle(-1)} className="ml-2 text-gray-400 hover:text-[#ff91af] transition-colors duration-200 p-1" title="Edit Item">
+                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>
+                           </button>
+                      </div>
+                      {editingState.index === -1 && (
+                          <form onSubmit={handleEditSubmit} className="mb-2 p-2 bg-gray-700/50 rounded-md space-y-2">
+                              <input
+                                  type="text"
+                                  value={editingState.text}
+                                  onChange={(e) => setEditingState({ ...editingState, text: e.target.value })}
+                                  placeholder="e.g., Change background"
+                                  className="w-full bg-gray-800 text-gray-200 text-xs p-2 rounded-md border border-gray-600 focus:ring-2 focus:ring-[#ff91af] focus:border-[#ff91af] outline-none"
+                                  autoFocus
+                              />
+                              <div className="flex justify-end space-x-2">
+                                  <button
+                                      type="button"
+                                      onClick={() => setEditingState({ index: null, text: '' })}
+                                      className="text-xs bg-gray-600 hover:bg-gray-500 text-gray-200 font-semibold py-1 px-3 rounded-md transition-colors"
+                                  >
+                                      Cancel
+                                  </button>
+                                  <button
+                                      type="submit"
+                                      className="text-xs bg-[#ff91af] hover:brightness-95 text-white font-semibold py-1 px-3 rounded-md transition-colors disabled:opacity-50"
+                                      disabled={!editingState.text.trim() || compositeImage.isLoading}
+                                  >
+                                      Apply
+                                  </button>
+                              </div>
+                          </form>
+                      )}
+                      <div className="mt-auto flex items-center space-x-3">
+                        <a
+                          href={compositeImage.imageUrl}
+                          download={`${compositeImage.name.replace(/\s+/g, '_').toLowerCase()}.png`}
+                          onClick={(e) => { if (compositeImage.isLoading) e.preventDefault(); }}
+                          className={`flex-grow text-center bg-[#ff91af] hover:brightness-95 text-white font-bold py-2 px-3 rounded-md transition-all duration-300 text-xs flex items-center justify-center space-x-1.5 ${compositeImage.isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                          <span>Download</span>
+                        </a>
+                        <button
+                            onClick={onRetryComposite}
+                            disabled={compositeImage.isLoading}
+                            title="Try Again"
+                            className="flex-shrink-0 bg-transparent hover:bg-gray-700 text-gray-400 hover:text-gray-100 font-bold p-2 rounded-md transition-all duration-300 border border-gray-600 hover:border-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 9a9 9 0 0114.13-5.12M20 15a9 9 0 01-14.13 5.12" /></svg>
+                        </button>
+                      </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <hr className="border-gray-700 my-4" />
+            <h4 className="text-lg font-semibold mb-3 text-center text-[#ff91af]/90">Individual Items</h4>
+
+            {/* Individual Item Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {transformedImages.map((item, index) => (
-                <div key={index} className="bg-white p-3 rounded-lg flex flex-col shadow-md border border-gray-200">
-                  <div className="relative w-full aspect-square bg-white rounded-md mb-3">
+                <div key={index} className="bg-gray-800 p-3 rounded-lg flex flex-col shadow-md border border-gray-700">
+                  <div className="relative w-full aspect-square bg-black/20 rounded-md mb-3 overflow-hidden">
                      <img
                         src={item.imageUrl}
                         alt={item.name}
@@ -158,31 +168,31 @@ const ResultView: React.FC<ResultViewProps> = ({ originalImage, transformedImage
                       />
                       {item.isLoading && (
                         <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-md z-10">
-                          <div className="w-8 h-8 border-2 border-t-[#ff91af] border-r-[#ff91af] border-gray-300 border-l-gray-300 rounded-full animate-spin"></div>
+                          <div className="w-8 h-8 border-2 border-t-[#ff91af] border-r-[#ff91af] border-gray-600 border-l-gray-600 rounded-full animate-spin"></div>
                         </div>
                       )}
                   </div>
-                  <div className="text-sm font-medium text-center text-gray-800 flex-grow mb-2 min-h-[2.5rem] flex items-center justify-center">
+                  <div className="text-sm font-medium text-center text-gray-200 flex-grow mb-2 min-h-[2.5rem] flex items-center justify-center">
                     <span className="flex-1">{item.name}</span>
-                     <button onClick={() => handleEditToggle(index)} className="ml-2 text-gray-500 hover:text-[#ff91af] transition-colors duration-200 p-1" title="Edit Item">
+                     <button onClick={() => handleEditToggle(index)} className="ml-2 text-gray-400 hover:text-[#ff91af] transition-colors duration-200 p-1" title="Edit Item">
                         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" /></svg>
                      </button>
                   </div>
                   {editingState.index === index && (
-                    <form onSubmit={handleEditSubmit} className="mb-2 p-2 bg-gray-100 rounded-md space-y-2">
+                    <form onSubmit={handleEditSubmit} className="mb-2 p-2 bg-gray-700/50 rounded-md space-y-2">
                         <input
                             type="text"
                             value={editingState.text}
                             onChange={(e) => setEditingState({ ...editingState, text: e.target.value })}
                             placeholder="e.g., Change color to blue"
-                            className="w-full bg-white text-gray-800 text-xs p-2 rounded-md border border-gray-300 focus:ring-2 focus:ring-[#ff91af] focus:border-[#ff91af] outline-none"
+                            className="w-full bg-gray-800 text-gray-200 text-xs p-2 rounded-md border border-gray-600 focus:ring-2 focus:ring-[#ff91af] focus:border-[#ff91af] outline-none"
                             autoFocus
                         />
                         <div className="flex justify-end space-x-2">
                             <button
                                 type="button"
                                 onClick={() => setEditingState({ index: null, text: '' })}
-                                className="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-1 px-3 rounded-md transition-colors"
+                                className="text-xs bg-gray-600 hover:bg-gray-500 text-gray-200 font-semibold py-1 px-3 rounded-md transition-colors"
                             >
                                 Cancel
                             </button>
@@ -210,7 +220,7 @@ const ResultView: React.FC<ResultViewProps> = ({ originalImage, transformedImage
                         onClick={() => onRetryItem(index)}
                         disabled={item.isLoading}
                         title="Try Again"
-                        className="flex-shrink-0 bg-transparent hover:bg-gray-200/50 text-gray-500 hover:text-gray-800 font-bold p-2 rounded-md transition-all duration-300 border border-gray-300 hover:border-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-shrink-0 bg-transparent hover:bg-gray-700 text-gray-400 hover:text-gray-100 font-bold p-2 rounded-md transition-all duration-300 border border-gray-600 hover:border-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 9a9 9 0 0114.13-5.12M20 15a9 9 0 01-14.13 5.12" /></svg>
                     </button>
@@ -241,9 +251,9 @@ const ResultView: React.FC<ResultViewProps> = ({ originalImage, transformedImage
                 <span>Batch Edit</span>
             </button>
             {isBatchMenuOpen && (
-                <div className="absolute bottom-full mb-2 w-full sm:w-64 bg-white border border-gray-200 rounded-lg shadow-xl py-2 z-20">
-                    <p className="text-sm font-semibold text-gray-700 px-4 pb-2 border-b border-gray-200">Apply to all items:</p>
-                    <ul className="text-gray-700">
+                <div className="absolute bottom-full mb-2 w-full sm:w-64 bg-gray-800 border border-gray-700 rounded-lg shadow-xl py-2 z-20">
+                    <p className="text-sm font-semibold text-gray-300 px-4 pb-2 border-b border-gray-700">Apply to all items:</p>
+                    <ul className="text-gray-300">
                         <li>
                             <button onClick={() => handleBatchBackgroundSelect('white')} className="w-full text-left px-4 py-2 text-sm hover:bg-[#ff91af] hover:text-white transition-colors duration-200">
                                 Change background to White

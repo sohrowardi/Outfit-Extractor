@@ -24,9 +24,9 @@ const ProcessingView: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center justify-center text-center p-8 min-h-[300px]">
-      <div className="w-16 h-16 border-4 border-t-[#ff91af] border-r-[#ff91af] border-b-gray-300 border-l-gray-300 rounded-full animate-spin mb-6"></div>
+      <div className="w-16 h-16 border-4 border-t-[#ff91af] border-r-[#ff91af] border-b-gray-600 border-l-gray-600 rounded-full animate-spin mb-6"></div>
       <h2 className="text-2xl font-semibold text-[#ff91af] mb-2">Creating Your Catalog</h2>
-      <p className="text-gray-600 transition-opacity duration-500 ease-in-out">
+      <p className="text-gray-400 transition-opacity duration-500 ease-in-out">
         {processingMessages[messageIndex]}
       </p>
     </div>

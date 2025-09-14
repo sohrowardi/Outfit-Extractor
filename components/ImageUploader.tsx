@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 
 interface ImageUploaderProps {
@@ -74,13 +73,13 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, error, onR
   };
 
   const dragDropClasses = isDragging
-    ? 'border-[#ff91af] bg-pink-50/50 scale-105'
-    : 'border-gray-300 hover:border-[#ff91af] hover:bg-pink-50/30';
+    ? 'border-[#ff91af] bg-[#ff91af]/20 scale-105'
+    : 'border-gray-600 hover:border-[#ff91af] hover:bg-[#ff91af]/10';
 
   return (
     <div className="flex flex-col items-center justify-center text-center">
       {error && (
-        <div className="bg-red-100 border border-red-300 text-red-700 p-4 rounded-lg mb-6 w-full max-w-md">
+        <div className="bg-red-900/50 border border-red-500 text-red-300 p-4 rounded-lg mb-6 w-full max-w-md">
           <p className="font-semibold">An Error Occurred</p>
           <p className="text-sm">{error}</p>
           { onReset && 
@@ -112,7 +111,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, error, onR
         />
         <div className="flex flex-col items-center justify-center space-y-4">
           <svg
-            className="w-16 h-16 text-gray-400"
+            className="w-16 h-16 text-gray-500"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -129,14 +128,14 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ onImageUpload, error, onR
           <p className="text-xl font-semibold text-[#ff91af]">
             Paste, Drag & Drop your image here
           </p>
-          <p className="text-gray-500">or</p>
+          <p className="text-gray-400">or</p>
           <button
             type="button"
             className="bg-[#ff91af] hover:brightness-95 text-white font-bold py-2 px-6 rounded-lg transition-all duration-300"
           >
             Browse Files
           </button>
-          <p className="text-xs text-gray-400 mt-2">Supports: PNG, JPG, WEBP</p>
+          <p className="text-xs text-gray-500 mt-2">Supports: PNG, JPG, WEBP</p>
         </div>
       </div>
     </div>

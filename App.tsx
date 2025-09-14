@@ -187,7 +187,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 text-gray-800 flex flex-col items-center justify-center p-4 sm:p-6 font-sans">
+    <div className="min-h-screen bg-gray-900 text-gray-200 flex flex-col items-center justify-center p-4 sm:p-6 font-sans">
       <header className="text-center mb-8">
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-[#ff91af]">
           Outfit Extractor
@@ -197,11 +197,11 @@ const App: React.FC = () => {
         </p>
       </header>
       <main className="w-full max-w-7xl">
-        <div className="bg-white/50 backdrop-blur-sm rounded-2xl shadow-2xl p-6 sm:p-8 border border-gray-200">
+        <div className="bg-gray-800/60 backdrop-blur-sm rounded-2xl shadow-2xl p-6 sm:p-8 border border-gray-700">
           {renderContent()}
         </div>
       </main>
-      <footer className="text-center mt-8 text-gray-500 text-sm">
+      <footer className="text-center mt-8 text-gray-400 text-sm">
         <p>Powered by Gemini AI</p>
       </footer>
     </div>
