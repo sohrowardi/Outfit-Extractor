@@ -24,7 +24,11 @@ const ProcessingView: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center justify-center text-center p-8 min-h-[300px]">
-      <div className="w-16 h-16 border-4 border-t-[#ff91af] border-r-[#ff91af] border-b-gray-600 border-l-gray-600 rounded-full animate-spin mb-6"></div>
+      <div className="flex space-x-2 mb-6" role="status" aria-label="Processing your image...">
+        <div className="w-4 h-4 bg-[#ff91af] rounded-full animate-bounce" style={{ animationDelay: '-0.3s' }}></div>
+        <div className="w-4 h-4 bg-[#ff91af] rounded-full animate-bounce" style={{ animationDelay: '-0.15s' }}></div>
+        <div className="w-4 h-4 bg-[#ff91af] rounded-full animate-bounce"></div>
+      </div>
       <h2 className="text-2xl font-semibold text-[#ff91af] mb-2">Creating Your Catalog</h2>
       <p className="text-gray-400 transition-opacity duration-500 ease-in-out">
         {processingMessages[messageIndex]}
