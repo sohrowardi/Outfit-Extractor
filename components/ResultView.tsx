@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { TransformedImage } from '../types';
+import ItemLoadingIndicator from './ItemLoadingIndicator';
 
 interface ResultViewProps {
   originalImage: string;
@@ -89,11 +90,7 @@ const ResultView: React.FC<ResultViewProps> = ({ originalImage, transformedImage
                               alt={compositeImage.name}
                               className={`w-full h-full object-contain rounded-md transition-opacity duration-300 ${compositeImage.isLoading ? 'opacity-30' : 'opacity-100'}`}
                           />
-                          {compositeImage.isLoading && (
-                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-md z-10">
-                              <div className="w-8 h-8 border-2 border-t-[#ff91af] border-r-[#ff91af] border-gray-600 border-l-gray-600 rounded-full animate-spin"></div>
-                            </div>
-                          )}
+                          {compositeImage.isLoading && <ItemLoadingIndicator />}
                       </div>
                       <div className="text-sm font-medium text-center text-gray-200 flex-grow mb-2 min-h-[2.5rem] flex items-center justify-center">
                           <span className="flex-1 font-bold">{compositeImage.name}</span>
@@ -166,11 +163,7 @@ const ResultView: React.FC<ResultViewProps> = ({ originalImage, transformedImage
                         alt={item.name}
                         className={`w-full h-full object-contain rounded-md transition-opacity duration-300 ${item.isLoading ? 'opacity-30' : 'opacity-100'}`}
                       />
-                      {item.isLoading && (
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-md z-10">
-                          <div className="w-8 h-8 border-2 border-t-[#ff91af] border-r-[#ff91af] border-gray-600 border-l-gray-600 rounded-full animate-spin"></div>
-                        </div>
-                      )}
+                      {item.isLoading && <ItemLoadingIndicator />}
                   </div>
                   <div className="text-sm font-medium text-center text-gray-200 flex-grow mb-2 min-h-[2.5rem] flex items-center justify-center">
                     <span className="flex-1">{item.name}</span>
