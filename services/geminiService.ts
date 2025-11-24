@@ -18,7 +18,7 @@ const generateItemImage = async (base64Image: string, mimeType: string, item: Cl
     const extractionPrompt = `From the provided original image, which may be a screenshot, isolate ONLY the '${item.description}'. Completely remove the person, other clothing, the original background, and any non-clothing elements such as text, icons, watermarks, or user interface elements. During this process, you must upscale and enhance the extracted item to a high-fidelity, photorealistic quality, regardless of the original image's resolution or clarity. Place the enhanced garment on ${backgroundPrompt}. The final image must showcase realistic fabric textures, folds, and details with natural, three-dimensional lighting. ${isTransparent ? 'The resulting image MUST be a PNG with an alpha channel.' : 'The background should be suitable for a professional e-commerce fashion catalog.'}`;
 
     const extractionResponse = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image-preview',
+        model: 'gemini-2.5-flash-image',
         contents: {
             parts: [
                 { inlineData: { data: base64Image, mimeType: mimeType } },
@@ -52,7 +52,7 @@ const generateCompositeImage = async (base64Image: string, mimeType: string, ite
     const prompt = `From the provided original image, which may be a screenshot, extract ALL of the following items: ${itemDescriptions}. For each item, you must completely remove any non-clothing elements like text, icons, watermarks, or user interface elements present in the source, and enhance each item to a high-fidelity, photorealistic quality, regardless of the original image's resolution. Arrange the enhanced items together aesthetically on a single, clean, seamless, photorealistic white studio background. This arrangement should resemble a professional fashion 'flat lay' or collection shot. Each item must showcase realistic fabric textures and details with natural, three-dimensional lighting. Do not include the person or any other background elements.`;
 
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image-preview',
+        model: 'gemini-2.5-flash-image',
         contents: {
             parts: [
                 { inlineData: { data: base64Image, mimeType: mimeType } },
@@ -182,7 +182,7 @@ export const editCompositeWithPrompt = async (imageFile: File, items: Transforme
         The arrangement should resemble a professional fashion 'flat lay' or collection shot. Each item must maintain its enhanced photorealistic quality. Do not include the person or any other background elements.`;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image-preview',
+            model: 'gemini-2.5-flash-image',
             contents: {
                 parts: [
                     { inlineData: { data: base64Image, mimeType: mimeType } },
@@ -226,7 +226,7 @@ export const editItemWithPrompt = async (imageFile: File, itemToChange: Transfor
         The resulting image must be high-fidelity, preserving realistic fabric textures, folds, and details, unless the modification specifies otherwise.`;
 
         const extractionResponse = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image-preview',
+            model: 'gemini-2.5-flash-image',
             contents: {
                 parts: [
                     { inlineData: { data: base64Image, mimeType: mimeType } },
