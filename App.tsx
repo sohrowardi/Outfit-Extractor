@@ -1,8 +1,9 @@
-import React, { useState, useCallback } from 'react';
+
+import React, { useState, useCallback, useEffect } from 'react';
 import ImageUploader from './components/ImageUploader';
 import ProcessingView from './components/ProcessingView';
 import ResultView from './components/ResultView';
-import { AppState, TransformedImage } from './types';
+import { AppState, TransformedImage, HistoryItem } from './types';
 import { transformClothingImage, retryExtraction, changeItemBackground, retryCompositeExtraction, editItemWithPrompt, editCompositeWithPrompt } from './services/geminiService';
 import { createAndDownloadZip } from './utils/fileUtils';
 
@@ -15,6 +16,75 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isZipping, setIsZipping] = useState<boolean>(false);
 
+  // Undo/Redo state
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [redoStack, setRedoStack] = useState<HistoryItem[]>([]);
+
+  const pushToHistory = useCallback(() => {
+    if (transformedImages) {
+      setHistory(prev => [...prev, { 
+        items: JSON.parse(JSON.stringify(transformedImages)), 
+        composite: compositeImage ? JSON.parse(JSON.stringify(compositeImage)) : null 
+      }]);
+      setRedoStack([]); // Clear redo stack on new action
+    }
+  }, [transformedImages, compositeImage]);
+
+  const handleUndo = useCallback(() => {
+    if (history.length === 0 || !transformedImages) return;
+
+    const prevState = history[history.length - 1];
+    const newHistory = history.slice(0, -1);
+
+    // Push current to redo
+    setRedoStack(prev => [...prev, { 
+      items: JSON.parse(JSON.stringify(transformedImages)), 
+      composite: compositeImage ? JSON.parse(JSON.stringify(compositeImage)) : null 
+    }]);
+
+    setTransformedImages(prevState.items);
+    setCompositeImage(prevState.composite);
+    setHistory(newHistory);
+  }, [history, transformedImages, compositeImage]);
+
+  const handleRedo = useCallback(() => {
+    if (redoStack.length === 0 || !transformedImages) return;
+
+    const nextState = redoStack[redoStack.length - 1];
+    const newRedoStack = redoStack.slice(0, -1);
+
+    // Push current to history
+    setHistory(prev => [...prev, { 
+      items: JSON.parse(JSON.stringify(transformedImages)), 
+      composite: compositeImage ? JSON.parse(JSON.stringify(compositeImage)) : null 
+    }]);
+
+    setTransformedImages(nextState.items);
+    setCompositeImage(nextState.composite);
+    setRedoStack(newRedoStack);
+  }, [redoStack, transformedImages, compositeImage]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (appState !== AppState.RESULT) return;
+      
+      const isCmdOrCtrl = e.metaKey || e.ctrlKey;
+      if (isCmdOrCtrl && e.key === 'z') {
+        if (e.shiftKey) {
+          handleRedo();
+        } else {
+          handleUndo();
+        }
+      } else if (isCmdOrCtrl && e.key === 'y') {
+        handleRedo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [appState, handleUndo, handleRedo]);
+
   const handleImageUpload = useCallback(async (file: File) => {
     setOriginalImage(file);
     setOriginalImageUrl(URL.createObjectURL(file));
@@ -22,6 +92,8 @@ const App: React.FC = () => {
     setError(null);
     setTransformedImages(null);
     setCompositeImage(null);
+    setHistory([]);
+    setRedoStack([]);
 
     try {
       const { individualItems, compositeImage } = await transformClothingImage(file);
@@ -43,10 +115,13 @@ const App: React.FC = () => {
     setTransformedImages(null);
     setCompositeImage(null);
     setError(null);
+    setHistory([]);
+    setRedoStack([]);
   }, [originalImageUrl]);
 
   const handleRetryItem = useCallback(async (index: number) => {
     if (!originalImage || !transformedImages) return;
+    pushToHistory();
 
     const itemToRetry = transformedImages[index];
 
@@ -66,10 +141,11 @@ const App: React.FC = () => {
         current!.map((item, i) => i === index ? { ...item, isLoading: false } : item)
       );
     }
-  }, [originalImage, transformedImages]);
+  }, [originalImage, transformedImages, pushToHistory]);
   
   const handleRetryComposite = useCallback(async () => {
     if (!originalImage || !transformedImages) return;
+    pushToHistory();
 
     setCompositeImage(current => current ? { ...current, isLoading: true } : null);
 
@@ -80,19 +156,18 @@ const App: React.FC = () => {
       console.error("Composite retry failed:", err);
       setCompositeImage(current => current ? { ...current, isLoading: false } : null);
     }
-  }, [originalImage, transformedImages]);
+  }, [originalImage, transformedImages, pushToHistory]);
 
   const handleItemEdit = useCallback(async (index: number, prompt: string) => {
     if (!originalImage || !transformedImages || !prompt) return;
-
-    const itemToEdit = transformedImages[index];
+    pushToHistory();
 
     setTransformedImages(current =>
       current!.map((item, i) => (i === index ? { ...item, isLoading: true } : item))
     );
 
     try {
-      const newItem = await editItemWithPrompt(originalImage, itemToEdit, prompt);
+      const newItem = await editItemWithPrompt(originalImage, transformedImages[index], prompt);
       setTransformedImages(current =>
         current!.map((item, i) => (i === index ? { ...newItem, isLoading: false } : item))
       );
@@ -102,10 +177,11 @@ const App: React.FC = () => {
         current!.map((item, i) => (i === index ? { ...item, isLoading: false } : item))
       );
     }
-  }, [originalImage, transformedImages]);
+  }, [originalImage, transformedImages, pushToHistory]);
 
   const handleCompositeEdit = useCallback(async (prompt: string) => {
     if (!originalImage || !transformedImages || !prompt) return;
+    pushToHistory();
 
     setCompositeImage(current => current ? { ...current, isLoading: true } : null);
 
@@ -116,10 +192,11 @@ const App: React.FC = () => {
         console.error("Composite edit failed:", err);
         setCompositeImage(current => current ? { ...current, isLoading: false } : null);
     }
-  }, [originalImage, transformedImages]);
+  }, [originalImage, transformedImages, pushToHistory]);
 
   const handleBatchBackgroundChange = useCallback(async (background: string) => {
     if (!originalImage || !transformedImages) return;
+    pushToHistory();
 
     setTransformedImages(current =>
       current!.map(item => ({ ...item, isLoading: true }))
@@ -136,7 +213,7 @@ const App: React.FC = () => {
         current!.map(item => ({ ...item, isLoading: false }))
       );
     }
-  }, [originalImage, transformedImages]);
+  }, [originalImage, transformedImages, pushToHistory]);
 
 
   const handleDownloadAll = useCallback(async () => {
@@ -176,6 +253,10 @@ const App: React.FC = () => {
             onEditComposite={handleCompositeEdit}
             onBatchBackgroundChange={handleBatchBackgroundChange}
             isDownloadingAll={isZipping}
+            canUndo={history.length > 0}
+            canRedo={redoStack.length > 0}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
           />
         );
       case AppState.ERROR:

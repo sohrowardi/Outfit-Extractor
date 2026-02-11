@@ -1,3 +1,4 @@
+
 export enum AppState {
   IDLE,
   PROCESSING,
@@ -10,4 +11,9 @@ export interface TransformedImage {
   description: string;
   imageUrl: string;
   isLoading?: boolean;
+}
+
+export interface HistoryItem {
+  items: TransformedImage[];
+  composite: TransformedImage | null;
 }

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { TransformedImage } from '../types';
 import ItemLoadingIndicator from './ItemLoadingIndicator';
@@ -14,9 +15,29 @@ interface ResultViewProps {
   onEditComposite: (prompt: string) => void;
   onBatchBackgroundChange: (background: string) => void;
   isDownloadingAll: boolean;
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
 }
 
-const ResultView: React.FC<ResultViewProps> = ({ originalImage, transformedImages, compositeImage, onReset, onRetryItem, onRetryComposite, onDownloadAll, onItemEdit, onEditComposite, onBatchBackgroundChange, isDownloadingAll }) => {
+const ResultView: React.FC<ResultViewProps> = ({ 
+    originalImage, 
+    transformedImages, 
+    compositeImage, 
+    onReset, 
+    onRetryItem, 
+    onRetryComposite, 
+    onDownloadAll, 
+    onItemEdit, 
+    onEditComposite, 
+    onBatchBackgroundChange, 
+    isDownloadingAll,
+    canUndo,
+    canRedo,
+    onUndo,
+    onRedo
+}) => {
   const [editingState, setEditingState] = useState<{ index: number | null; text: string }>({ index: null, text: '' });
   const [isBatchMenuOpen, setIsBatchMenuOpen] = useState(false);
   const isAnyItemLoading = transformedImages.some(item => item.isLoading) || (compositeImage?.isLoading ?? false);
@@ -60,6 +81,31 @@ const ResultView: React.FC<ResultViewProps> = ({ originalImage, transformedImage
 
   return (
     <div className="flex flex-col items-center">
+      {/* Undo/Redo Floating Bar */}
+      <div className="flex items-center space-x-2 mb-6 bg-gray-700/50 p-2 rounded-full border border-gray-600 shadow-lg">
+        <button
+          onClick={onUndo}
+          disabled={!canUndo || isAnyItemLoading}
+          className="p-2 rounded-full hover:bg-[#ff91af]/20 text-gray-300 hover:text-[#ff91af] disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-all"
+          title="Undo (Ctrl+Z)"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+          </svg>
+        </button>
+        <div className="w-px h-6 bg-gray-600"></div>
+        <button
+          onClick={onRedo}
+          disabled={!canRedo || isAnyItemLoading}
+          className="p-2 rounded-full hover:bg-[#ff91af]/20 text-gray-300 hover:text-[#ff91af] disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-all"
+          title="Redo (Ctrl+Shift+Z)"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" />
+          </svg>
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 w-full mb-8">
         {/* Original Image Column */}
         <div className="flex flex-col items-center">
